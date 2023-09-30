@@ -52,7 +52,6 @@ func newValidatorHandler(next http.Handler) validationHandler {
 
 func (h validationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var request helloWorldRequest
-
 	decoder := json.NewDecoder(r.Body)
 
 	err := decoder.Decode(&request)
