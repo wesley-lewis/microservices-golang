@@ -20,12 +20,22 @@ type helloWorldResponse struct {
 	Message string `json:"message"`
 }
 
-func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
-	response := helloWorldResponse{Message: "Hello world!"}
+type helloWorldRequest struct {
+	Name string `json:"name"`
+}
 
-	data, err := json.Marshal(response)
+func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
+	var request helloWorldRequest
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(&request)
 	if err != nil {
-		panic("Oops")
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
-	fmt.Fprintf(w, string(data))
+
+	response := helloWorldResponse{Message: "Hello " + request.Name + "!"}
+
+	encoder := json.NewEncoder(w)
+	encoder.Encode(&response)
 }
