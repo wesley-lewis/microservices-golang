@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,7 +11,7 @@ import (
 func main() {
 	port := 8080
 
-	http.HandleFunc("/helloworld", helloWorldHandler)
+	http.HandleFunc("/helloworld", newHelloWorldHandler().ServeHTTP)
 	cathandler := http.FileServer(http.Dir("./images"))
 	http.Handle("/cat/", http.StripPrefix("/cat/", cathandler))
 
@@ -24,22 +25,6 @@ type helloWorldResponse struct {
 
 type helloWorldRequest struct {
 	Name string `json:"name"`
-}
-
-func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
-	var request helloWorldRequest
-	decoder := json.NewDecoder(r.Body)
-
-	err := decoder.Decode(&request)
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-
-	response := helloWorldResponse{Message: "Hello " + request.Name + "!"}
-
-	encoder := json.NewEncoder(w)
-	encoder.Encode(&response)
 }
 
 type validationHandler struct {
@@ -61,5 +46,25 @@ func (h validationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	c := context.WithValue(r.Context(), validationContextKey("name"), request.Name)
+	r = r.WithContext(c)
+
 	h.next.ServeHTTP(w, r)
+}
+
+type validationContextKey string
+
+type helloWorldHandler struct {
+}
+
+func newHelloWorldHandler() http.Handler {
+	return helloWorldHandler{}
+}
+
+func (h helloWorldHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	name := r.Context().Value(validationContextKey("name")).(string)
+	response := helloWorldResponse{Message: "Hello " + name}
+
+	encoder := json.NewEncoder(w)
+	encoder.Encode(response)
 }
