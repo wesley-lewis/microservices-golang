@@ -41,3 +41,26 @@ func helloWorldHandler(w http.ResponseWriter, r *http.Request) {
 	encoder := json.NewEncoder(w)
 	encoder.Encode(&response)
 }
+
+type validationHandler struct {
+	next http.Handler
+}
+
+func newValidatorHandler(next http.Handler) validationHandler {
+	return validationHandler{next: next}
+}
+
+func (h validationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var request helloWorldRequest
+
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(&request)
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	h.next.ServeHTTP(w, r)
+}
